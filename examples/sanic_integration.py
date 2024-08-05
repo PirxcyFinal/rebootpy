@@ -1,5 +1,6 @@
 """This example showcases how to use rebootpy with the asynchronous
 web framework sanic.
+Must be using Sanic Version 21.6.2 or lower
 """
 
 import rebootpy
@@ -28,19 +29,22 @@ bot = commands.Bot(
 )
 
 sanic_app = sanic.Sanic(__name__)
+host = "0.0.0.0"
+port = 80
 server = None
-
 
 @bot.event
 async def event_device_auth_generate(details, email):
     store_device_auth_details(email, details)
 
+@app.main_process_start
+async def main_start(*_):
+    print(f"Sanic Server Ready {host}:{port}")
 
-@sanic_app.route('/friends', methods=['GET'])
+@sanic_app.route('/friends')
 async def get_friends_handler(request):
     friends = [friend.id for friend in bot.friends]
     return sanic.response.json(friends)
-
 
 @bot.event
 async def event_ready():
@@ -49,7 +53,7 @@ async def event_ready():
     print(f'Bot ready as {bot.user.display_name} ({bot.user.id}).')
 
     server = await sanic_app.create_server(
-        port=80, host="0.0.0.0", return_asyncio_server=True
+        port=port, host=host, return_asyncio_server=True
     )
 
     await server.startup()
@@ -60,7 +64,7 @@ async def event_ready():
 async def event_before_close():
     global server
 
-    if server is not None:
+    if server:
         await server.close()
 
 
